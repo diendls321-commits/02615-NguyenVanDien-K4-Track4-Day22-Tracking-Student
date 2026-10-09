@@ -103,8 +103,18 @@ def run_trackeval(trackeval_root: Path, run_name: str, benchmark: str, split: st
     Raises:
         subprocess.CalledProcessError: Khi TrackEval thoát với mã khác 0.
     """
+    # Bản vá ở tiến trình cha không truyền sang tiến trình Python chấm điểm.
+    # Nạp lại helper và áp dụng bản vá trong chính tiến trình TrackEval.
+    bootstrap = (
+        "import runpy, sys; "
+        "helper = runpy.run_path(sys.argv.pop(1)); "
+        "helper['_patch_numpy_aliases'](); "
+        "script = sys.argv.pop(1); "
+        "sys.argv[0] = script; "
+        "runpy.run_path(script, run_name='__main__')"
+    )
     cmd = [
-        sys.executable,
+        sys.executable, "-c", bootstrap, str(Path(__file__).resolve()),
         str(trackeval_root / "scripts" / "run_mot_challenge.py"),
         "--GT_FOLDER", str(trackeval_root / "data" / "gt" / "mot_challenge"),
         "--TRACKERS_FOLDER", str(trackeval_root / "data" / "trackers" / "mot_challenge"),
